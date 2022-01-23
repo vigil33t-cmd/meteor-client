@@ -7,10 +7,7 @@ package meteordevelopment.meteorclient.systems.hud.modules;
 
 import meteordevelopment.meteorclient.renderer.GL;
 import meteordevelopment.meteorclient.renderer.Renderer2D;
-import meteordevelopment.meteorclient.settings.BoolSetting;
-import meteordevelopment.meteorclient.settings.DoubleSetting;
-import meteordevelopment.meteorclient.settings.Setting;
-import meteordevelopment.meteorclient.settings.SettingGroup;
+import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.hud.HUD;
 import meteordevelopment.meteorclient.systems.hud.HudRenderer;
 import meteordevelopment.meteorclient.utils.Utils;
@@ -21,6 +18,7 @@ import net.minecraft.util.Identifier;
 
 public class ContainerViewerHud extends HudElement {
     private static final Identifier TEXTURE = new Identifier("meteor-client", "textures/container.png");
+    private static final Identifier TEXTURE_TRANSPARENT = new Identifier("meteor-client", "textures/container-transparent.png");
 
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
 
@@ -30,6 +28,22 @@ public class ContainerViewerHud extends HudElement {
         .defaultValue(2)
         .min(1)
         .sliderRange(1, 5)
+        .build()
+    );
+
+    private final Setting<Background> background = sgGeneral.add(new EnumSetting.Builder<Background>()
+        .name("background")
+        .description("Background of container viewer.")
+        .defaultValue(Background.Texture)
+        .build()
+    );
+
+    private final Setting<Integer> opacity = sgGeneral.add(new IntSetting.Builder()
+        .name("background-opacity")
+        .description("Background opacity.")
+        .defaultValue(255)
+        .min(0)
+        .sliderRange(0, 255)
         .build()
     );
 
@@ -48,7 +62,7 @@ public class ContainerViewerHud extends HudElement {
 
     @Override
     public void update(HudRenderer renderer) {
-        box.setSize(176 * scale.get(), 67 * scale.get());
+        box.setSize(background.get().width * scale.get(), background.get().height * scale.get());
     }
 
     @Override
@@ -59,7 +73,9 @@ public class ContainerViewerHud extends HudElement {
         ItemStack container = getContainer();
         if (container == null) return;
 
-        drawBackground((int) x, (int) y, container);
+        if (background.get() != Background.None) {
+            drawBackground((int) x, (int) y, container);
+        }
 
         Utils.getItemsInContainerItem(container, inventory);
 
@@ -68,7 +84,10 @@ public class ContainerViewerHud extends HudElement {
                 ItemStack stack = inventory[row * 9 + i];
                 if (stack == null || stack.isEmpty()) continue;
 
-                RenderUtils.drawItem(stack, (int) (x + (8 + i * 18) * scale.get()), (int) (y + (7 + row * 18) * scale.get()), scale.get(), true);
+                int itemX = background.get() == Background.Texture ? (int) (x + (8 + i * 18) * scale.get()) : (int) (x + (1 + i * 18) * scale.get());
+                int itemY = background.get() == Background.Texture ? (int) (y + (7 + row * 18) * scale.get()) : (int) (y + (1 + row * 18) * scale.get());
+
+                RenderUtils.drawItem(stack, itemX, itemY, scale.get(), true);
             }
         }
     }
@@ -86,10 +105,37 @@ public class ContainerViewerHud extends HudElement {
     }
 
     private void drawBackground(int x, int y, ItemStack container) {
-        GL.bindTexture(TEXTURE);
+        int w = (int) box.width;
+        int h = (int) box.height;
 
-        Renderer2D.TEXTURE.begin();
-        Renderer2D.TEXTURE.texQuad(x, y, box.width, box.height, Utils.getShulkerColor(container));
-        Renderer2D.TEXTURE.render(null);
+        switch (background.get()) {
+            case Texture, Outline -> {
+                GL.bindTexture(background.get() == Background.Texture ? TEXTURE : TEXTURE_TRANSPARENT);
+
+                Renderer2D.TEXTURE.begin();
+                Renderer2D.TEXTURE.texQuad(x, y, w, h, Utils.getShulkerColor(container).a(opacity.get()));
+                Renderer2D.TEXTURE.render(null);
+            }
+            case Flat -> {
+                Renderer2D.COLOR.begin();
+                Renderer2D.COLOR.quad(x, y, w, h, Utils.getShulkerColor(container).a(opacity.get()));
+                Renderer2D.COLOR.render(null);
+            }
+        }
     }
+
+    public enum Background {
+        None(162, 54),
+        Texture(176, 67),
+        Outline(162, 54),
+        Flat(162, 54);
+
+        private int width, height;
+
+        Background(int width, int height) {
+            this.width = width;
+            this.height = height;
+        }
+    }
+
 }
