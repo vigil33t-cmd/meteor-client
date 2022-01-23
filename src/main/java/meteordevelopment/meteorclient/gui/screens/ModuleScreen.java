@@ -67,6 +67,13 @@ public class ModuleScreen extends WindowScreen {
         WCheckbox tobrC = tobr.add(theme.checkbox(module.toggleOnBindRelease)).widget();
         tobrC.action = () -> module.toggleOnBindRelease = tobrC.checked;
 
+        // Show toggled messages
+        WHorizontalList dtm = section.add(theme.horizontalList()).widget();
+
+        dtm.add(theme.label("Toggled messages: "));
+        WCheckbox dtmC = dtm.add(theme.checkbox(module.showToggledMsg)).widget();
+        dtmC.action = () -> module.showToggledMsg = dtmC.checked;
+
         add(theme.horizontalSeparator()).expandX();
 
         // Bottom
