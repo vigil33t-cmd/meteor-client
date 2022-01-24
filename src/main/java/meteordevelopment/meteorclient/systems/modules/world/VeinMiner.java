@@ -53,9 +53,16 @@ public class VeinMiner extends Module {
 
     // General
 
+    private final Setting<Boolean> toggleWhitelist = sgGeneral.add(new BoolSetting.Builder()
+        .name("toggle-whitelist")
+        .description("Allows you to use the blacklist as a whitelist.")
+        .defaultValue(false)
+        .build()
+    );
+
     private final Setting<List<Block>> blacklist = sgGeneral.add(new BlockListSetting.Builder()
         .name("blacklist")
-        .description("Which blocks to ignore.")
+        .description("Which blocks to ignore/mine.")
         .defaultValue(Blocks.STONE, Blocks.DIRT, Blocks.GRASS)
         .build()
     );
@@ -139,7 +146,11 @@ public class VeinMiner extends Module {
     @EventHandler
     private void onStartBreakingBlock(StartBreakingBlockEvent event) {
         BlockState state = mc.world.getBlockState(event.blockPos);
-        if (state.getHardness(mc.world, event.blockPos) < 0 || blacklist.get().contains(state.getBlock())) return;
+
+        if (toggleWhitelist.get() && !blacklist.get().contains(state.getBlock()))
+            return;
+        if (!toggleWhitelist.get() && (state.getHardness(mc.world, event.blockPos) < 0 || blacklist.get().contains(state.getBlock())))
+            return;
 
         foundBlockPositions.clear();
 
@@ -239,5 +250,10 @@ public class VeinMiner extends Module {
                 mineNearbyBlocks(item, neighbour, dir, depth-1);
             }
         }
+    }
+
+    @Override
+    public String getInfoString() {
+        return toggleWhitelist.get() ? "Whitelist" : null;
     }
 }
