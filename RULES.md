@@ -1,0 +1,3 @@
+# RULES!
+
+>DO NOT PUSH TO MASTER!
